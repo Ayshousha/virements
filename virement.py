@@ -1,66 +1,57 @@
+import logging
 from datetime import date
 
-# Open the source and destination files
-source = open("virements.txt", 'r')
-destination = open('FMONDAT.MUT', 'w+')
+# Configure logging
+log_file='/log/execution.log'
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Get today's date in the required format
-today = date.today().strftime("%d/%m/%Y")
+# Log the start of execution
+logging.info('Script execution started.')
 
-# Write the header to the destination file
-destination.write("DEBUT FICHIER MUT " + today + "\n")
+# Open files
+source= open("virements.txt", 'r', encoding="utf-8")
+destination=open('FMANDAT.MUT', 'w+')
 
-# Read all lines from the source file
-lignes = source.readlines()
-
-# Define a dictionary template to store the transaction details
-dic = {
-    "Code_mouvement": '',
-    "RIB": '',
-    "Raison_sociale": '',
-    "Montant_du_virement": '',
-    "Code_opération": ''
-}
-
-# List to hold all transaction details
-resultat = []
-
-# Process each line from the source file
-for i in range(len(lignes)):
-    ligne = lignes[i]
+try:
+    today = date.today().strftime("%d/%m/%Y")
+    destination.write("DEBUT FICHIER MUT " + today + "\n")
+    lignes = source.readlines()
+    dic={"Code_mouvement":'', "RIB":'', "Raison_sociale":'', "Montant_du_virement":'', "Code_opération":''}
+    resultat=[]
     
-    if i == 0:
-        # For the first line, set specific values
-        dic["Code_mouvement"] = "D"
-        dic["RIB"] = "10104059109504278843"
-        dic["Raison_sociale"] = "MUTUELLELELECTRICITEGAZ  "
-        dic["Montant_du_virement"] = ligne[28:43].strip()
-        dic["Code_opération"] = "VOAU"
-    else:
-        # For subsequent lines, extract values from specific positions
-        dic["Code_mouvement"] = "B"
-        dic["RIB"] = ligne[105:125].strip()
-        dic["Raison_sociale"] = ligne[125:150].strip()
-        dic["Montant_du_virement"] = ligne[28:43].strip()
-        dic["Code_opération"] = "VOAU"
+    for i in range(0,len(lignes)):
+        if i ==0:
+            ligne=str(lignes[i])
+            dic["Code_mouvement"]=str("D")
+            dic["RIB"]=str("10104059109504278843")
+            dic["Raison_sociale"]=str("MUTUELLELELECTRICITEGAZ  ")
+            dic["Montant_du_virement"]=ligne[28:43]
+            dic["Code_opération"]=str("VOAU")
+            resultat.append(dic.copy())
+        else:
+            ligne=str(lignes[i])
+            dic["Code_mouvement"]=str("B")
+            dic["RIB"]=ligne[105:125] 
+            dic["Raison_sociale"]=ligne[125:150]
+            dic["Montant_du_virement"]=ligne[28:43]
+            dic["Code_opération"]=str("VOAU")
+            resultat.append(dic.copy())
+            
+    for i in range(len(resultat)):
+        print(resultat[i])
+        destination.write(resultat[i].get("Code_mouvement") + resultat[i].get("RIB")+resultat[i].get("Raison_sociale")+resultat[i].get("Montant_du_virement")+resultat[i].get("Code_opération"))
+        destination.write("\n")
+
+    destination.write("FIN FICHIER MUT "+today)
     
-    # Append a copy of the dictionary to the result list
-    resultat.append(dic.copy())
+    # Log success message
+    logging.info('Execution completed successfully.')
+    
+except Exception as e:
+    # Log error message
+    logging.error(f'An error occurred: {str(e)}')
 
-# Write each transaction detail to the destination file
-for entry in resultat:
-    destination.write(
-        entry["Code_mouvement"] +
-        entry["RIB"] +
-        entry["Raison_sociale"] +
-        entry["Montant_du_virement"] +
-        entry["Code_opération"] +
-        "\n"
-    )
-
-# Write the footer to the destination file
-destination.write("FIN FICHIER MUT " + today + "\n")
-
-# Close the files
-source.close()
-destination.close()
+finally:
+    # Close files
+    source.close()
+    destination.close()
